@@ -1,0 +1,69 @@
+G.SCENES.schedule = function (b, done) {
+  const S = G.S;
+  if (!S.sched) {
+    S.sched = { v: C.schedule.map(r => r.min), warn: '' };
+    G.save();
+  }
+  const SC = S.sched;
+  const total = () => SC.v.reduce((a, b) => a + b, 0);
+  function render() {
+    const t = total();
+    const cells = [];
+    for (let i = 0; i < Math.max(24, t); i++) {
+      cells.push('<i class="' + (i < 24 ? 'f' : 'of') + '"></i>');
+    }
+    G.show(
+      '<div style="max-width:360px;margin:0 auto">' +
+      '<div class="hint-top">高三 · 最后一张时间表</div>' +
+      '<div class="card-title">把一天排出来</div>' +
+      '<div class="zy-note">每项都有人替你规定了最低时长。格子只有 24 个。</div>' +
+      '<div class="slotbar">' + cells.join('') + '</div>' +
+      '<div class="sched-total' + (t > 24 ? ' over' : t === 24 ? ' ok' : '') + '">已分配 ' + t + ' / 24' +
+      (t > 24 ? '<span class="warn">　超了 ' + (t - 24) + ' 小时</span>' : '') + '</div>' +
+      (SC.warn ? '<div class="sched-warn">⚠ ' + SC.warn + '</div>' : '') +
+      C.schedule.map((r, i) =>
+        '<div class="sched-row' + (SC.v[i] < r.min ? ' cut' : '') + '">' +
+        '<span class="sr-name">' + r.name + '<small>　' + r.voice + '：至少 ' + r.min + 'h</small></span>' +
+        '<span class="sr-step">' +
+        '<button class="step-btn" data-i="' + i + '" data-d="-1">−</button>' +
+        '<b>' + SC.v[i] + '</b>' +
+        '<button class="step-btn" data-i="' + i + '" data-d="1">＋</button></span></div>').join('') +
+      '<div class="choices"><button class="btn primary center" id="sc-sub" ' + (t === 24 ? '' : 'disabled') + '>提交这张时间表 ▸</button></div>' +
+      (t !== 24 ? '<div class="gacha-note" style="text-align:center">必须恰好分满 24 小时才能提交。</div>' : '') +
+      '</div>', {});
+    G.$('#scene').querySelectorAll('.step-btn').forEach(btn => {
+      btn.onclick = () => {
+        const i = +btn.dataset.i, d = +btn.dataset.d;
+        if (SC.v[i] + d < 0 || SC.v[i] + d > 14) return;
+        SC.v[i] += d;
+        SC.warn = SC.v[i] < C.schedule[i].min ? (C.schedule[i].voice + '：' + C.schedule[i].warn) : '';
+        try { G.sfx && G.sfx.click(); } catch (e) {}
+        G.save();
+        render();
+      };
+    });
+    const sub = G.$('#sc-sub');
+    if (sub) sub.onclick = () => finish();
+  }
+  function finish() {
+    const cuts = C.schedule.map((r, i) => ({ r, cut: r.min - S.sched.v[i] })).filter(x => x.cut > 0);
+    const cutLine = {
+      '医生': '医生说睡不够会猝死。那是十年后的事。',
+      '妈妈': '妈妈说钱都交了。妈妈没说不能砍。',
+      '班主任': '班主任说都这么过来的。没人问你是怎么过来的。',
+      '学校': '学校说旷课要请家长。家长说他们也没办法。',
+      '现实': '现实说路不会变短。',
+      '生存': '生存说人要吃饭。生存没说活干不完。'
+    };
+    const lines = cuts.map(x => ({ t: '你砍掉了【' + x.r.name + '】' + x.cut + ' 小时。（' + (cutLine[x.r.voice] || '') + '）' }));
+    lines.push({ t: '你提交了这张时间表。' });
+    lines.push({ t: '这 道 题 无 解', big: 1 });
+    lines.push({ t: '最低配置加起来是 29 小时，而你只有 24。' });
+    lines.push({ t: '出题的人知道。他们只是想看你砍哪一块。' });
+    lines.push({ t: '从小学三年级到高三，你每天都在解这道题。', small: 1 });
+    G.applyFx({ health: -5, mood: -8 });
+    G.cine(lines, 'red', done);
+  }
+  render();
+};
+
