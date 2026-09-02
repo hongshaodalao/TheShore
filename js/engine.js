@@ -41,19 +41,22 @@ G.buildChapters = function () {
     const o = clone(b); o.t = 'card'; delete o.type; return o;
   };
   G.norm = norm;
+  // v1.15：出生过滤（famFilter 命中之外的一律跳过）
+  const byFam = b => !b.famFilter || b.famFilter.includes(S.fam);
   if (S.fam === 'roma') { G.buildRoma(norm); return; }
 
   // ==== 小镇 / 中产：共享主干 ====
   Q.push({ t: 'cine', style: 'dark', lines: C.interludes.ch1 });
   Q.push({ t: 'fx', fx: { age: 12 } });
   Q.push({ t: 'news', id: 'sanSui' });
+  if (S.fam !== 'roma') Q.push({ t: 'news', id: S.fam === 'town' ? 'cunqing' : 'jiaoyu' });
   const ch1 = clone(C.ch1);
   const pool = clone(C.ch1Pool);
   ch1.splice(2, 0, pool.shift());
   ch1.splice(8, 0, pool.shift());
   ch1.splice(13, 0, pool.shift());
   ch1.splice(16, 0, pool.shift());
-  ch1.forEach(raw => Q.push(norm(raw)));
+  ch1.filter(byFam).forEach(raw => Q.push(norm(raw)));
   Q.push({ t: 'dm', title: '网络舆论 · 教育版', pools: ['edu', 'general'], n: 12 });
   Q.push({ t: 'fn', id: 'schedule' });
   Q.push({ t: 'fn', id: 'rank' });
@@ -69,16 +72,19 @@ G.buildChapters = function () {
   Q.push({ t: 'fx', fx: { age: 19 } });
   Q.push({ t: 'fn', id: 'kzq' });
   Q.push({ t: 'news', id: 'kaoyan' });
+  if (S.fam === 'mid') Q.push({ t: 'news', id: 'guojiBi' });
+  if (S.fam === 'town') Q.push({ t: 'news', id: 'dagong' });
   const uni = clone(C.uni);
   const unipool = clone(C.uniPool);
   uni.splice(5, 0, unipool.shift());
   uni.splice(9, 0, unipool.shift());
   uni.splice(12, 0, unipool.shift());
-  uni.forEach(raw => Q.push(norm(raw)));
+  uni.filter(byFam).forEach(raw => Q.push(norm(raw)));
   Q.push({ t: 'dm', title: '校园墙 · 期末特别版', pools: ['uni'], n: 11 });
   Q.push(norm(C.tongzhuo.uni));
   Q.push({ t: 'fn', id: 'gradPath' });
   Q.push({ t: 'news', id: 'xiaozhen' });
+  Q.push({ t: 'news', id: 'lungang' });
   // 第三章
   Q.push({ t: 'cine', style: 'dark', lines: C.interludes.ch3 });
   Q.push({ t: 'fx', fx: { age: 23 } });
@@ -110,7 +116,7 @@ G.buildChapters = function () {
   Q.push({ t: 'fn', id: 'jargon' });
   // 职场事件池烘焙（固定 7 张 + 向上管理特写）
   const evs = [];
-  const evpool = clone(C.ch4Pool).filter(e => e.type === 'card').map(norm);
+  const evpool = clone(C.ch4Pool).filter(e => e.type === 'card' && byFam(e)).map(norm);
   for (let i = 0; i < 7; i++) evs.push(evpool.splice(Math.floor(G.rng() * evpool.length), 1)[0]);
   Q.push({ t: 'fn', id: 'work', events: evs });
   // 相亲小章（婚姻市场：优绩主义的最后一条战线）
@@ -120,7 +126,7 @@ G.buildChapters = function () {
   Q.push(norm(C.tongzhuo.ch4));
   const xq = clone(C.xq);
   xq.splice(3, 0, clone(C.xqPool)[Math.floor(G.rng() * C.xqPool.length)]);
-  xq.forEach(raw => Q.push(norm(raw)));
+  xq.filter(byFam).forEach(raw => Q.push(norm(raw)));
   Q.push({ t: 'news', id: 'biye' });
   Q.push({ t: 'fn', id: 'layoffTalk' });
   G.finishQueue();
@@ -143,6 +149,7 @@ G.buildRoma = function (norm) {
   Q.push({ t: 'cine', style: 'dark', lines: C.roma.apply });
   Q.push({ t: 'fn', id: 'schedule' }); // 罗马《空日历》：填满你的 13 格空白
   Q.push({ t: 'news', id: 'jiaban' });
+  Q.push({ t: 'news', id: 'erdai' });
   pushCard(pick('信托'));
   // 大学段
   Q.push({ t: 'cine', style: 'dark', lines: C.interludesRoma.uni });
@@ -176,6 +183,15 @@ G.buildRoma = function (norm) {
 };
 
 /* ---------- v1.13：终幕共用烘焙 ---------- */
+/* ---------- v1.15：按出生插入专属热搜 ---------- */
+G.famNews = function (newsId) {
+  const S = G.S;
+  const map = { town: ['cunqing', 'dagong'], mid: ['jiaoyu', 'guojiBi'], roma: ['erdai'] };
+  const extra = (map[S.fam] || []).filter(id => C.news[id]);
+  const i = S.Q.findIndex(b => b.t === 'news' && b.id === newsId);
+  if (i >= 0 && extra.length) S.Q.splice(i + 1, 0, ...extra.map(id => ({ t: 'news', id })));
+};
+
 G.finishQueue = function () {
   const S = G.S, Q = S.Q;
   Q.push({ t: 'fn', id: 'ending' });
@@ -1100,80 +1116,77 @@ G.SCENES.scheduleRoma = function (b, done) {
   render();
 };
 
-/* ---------- v1.14：中产《两份账单》——钱和时间里挑一样放弃 ---------- */
+/* ---------- v1.16：中产《两份账单》——钱能解开这道题，代价写在另一道题里 ---------- */
 G.SCENES.scheduleMid = function (b, done) {
   const S = G.S;
   const M = C.scheduleMid;
   if (!S.schedM) {
-    S.schedM = { v: M.map(r => r.min), warn: '', redeemed: 0, redeemedIdx: -1 };
+    S.schedM = { v: M.map(r => r.min), warn: '', pays: {} };
     G.save();
   }
   const MD = S.schedM;
   const total = () => MD.v.reduce((a, b) => a + b, 0);
+  const minSum = () => M.reduce((a, r) => a + (MD.pays[r.id] ? r.pay.to : r.min), 0);
   function render() {
     const t = total();
+    const need = minSum();
     const cells = [];
     for (let i = 0; i < Math.max(24, t); i++) cells.push('<i class="' + (i < 24 ? 'f' : 'of') + '"></i>');
+    const spent = M.reduce((a, r) => a + (MD.pays[r.id] ? r.pay.cost : 0), 0);
     G.show(
       '<div style="max-width:360px;margin:0 auto">' +
       '<div class="hint-top">高三 · 最后一张时间表</div>' +
       '<div class="card-title">两份账单，抢 24 格</div>' +
-      '<div class="zy-note">小镇的表上，每项只有一种价格。你的表上，每项都有两份账单：一份用钱付，一份用时间付。</div>' +
+      '<div class="zy-note">小镇的表上，每项只有一种价格。你的表上，有些项可以花钱压缩——钱是你的特权，也是你的账单。</div>' +
       '<div class="slotbar">' + cells.join('') + '</div>' +
-      '<div class="sched-total' + (t > 24 ? ' over' : t === 24 ? ' ok' : '') + '">已分配 ' + t + ' / 24' +
+      '<div class="sched-total' + (t > 24 ? ' over' : t <= 24 && t >= need && need <= 24 ? ' ok' : '') + '">已分配 ' + t + ' / 24' +
       (t > 24 ? '<span class="warn">　超了 ' + (t - 24) + ' 小时</span>' : '') + '</div>' +
       (MD.warn ? '<div class="sched-warn">⚠ ' + MD.warn + '</div>' : '') +
-      M.map((r, i) =>
-        '<div class="sched-row' + (MD.v[i] < r.min ? ' cut' : '') + '">' +
-        '<span class="sr-name">' + r.name +
-        (r.altName ? '<small>　两份账单：' + r.min + 'h（' + (r.altName || '现状') + '）/ ' + r.altMin + 'h（' + (r.altName || '') + '）</small>' : '<small>　' + r.voice + '：至少 ' + r.min + 'h</small>') +
-        '</span>' +
+      M.map((r, i) => {
+        const paid = !!MD.pays[r.id];
+        const canPay = r.pay && !paid && G.S.attrs.money >= r.pay.cost;
+        const cur = MD.v[i];
+        return '<div class="sched-row' + (cur < r.min && !paid ? ' cut' : '') + '">' +
+        '<span class="sr-name">' + r.name + (paid ? '<small>　' + r.pay.label + '（已压缩）</small>' : '') + '</span>' +
         '<span class="sr-step">' +
-        '<button class="step-btn" data-i="' + i + '" data-d="-1">−</button>' +
-        '<b>' + MD.v[i] + '</b>' +
-        '<button class="step-btn" data-i="' + i + '" data-d="1">＋</button></span></div>').join('') +
-      (MD.redeemed === 0 && total() > 24 ? '<div class="lucky-link"><a id="md-redeem">花 5 万，把砍掉的一项买回来 →</a></div>' : '') +
-      (MD.redeemed > 0 ? '<div class="gacha-note" style="text-align:center">已用赎回：1 次（¥50000）。钱能买回格子，买不回 24 的总量。</div>' : '') +
+        '<button class="step-btn" data-i="' + i + '" data-d="-1"' + (paid ? ' disabled' : '') + '>−</button>' +
+        '<b>' + cur + '</b>' +
+        '<button class="step-btn" data-i="' + i + '" data-d="1"' + (paid ? ' disabled' : '') + '>＋</button></span></div>' +
+        (r.pay && !paid ? '<div class="pay-row"><a class="pay-link" data-id="' + r.id + '">花 ¥' + r.pay.cost + ' 万 · ' + r.pay.label + '（' + r.min + 'h → ' + r.pay.to + 'h）</a></div>' : '');
+      }).join('') +
       '<div class="choices"><button class="btn primary center" id="sc-sub" ' + (t === 24 ? '' : 'disabled') + '>提交这张时间表 ▸</button></div>' +
-      (t !== 24 ? '<div class="gacha-note" style="text-align:center">必须恰好分满 24 小时才能提交。</div>' : '') +
+      (t !== 24 ? '<div class="gacha-note" style="text-align:center">必须恰好分满 24 小时才能提交。' + (spent ? '已花 ¥' + spent + ' 万。' : '') + '</div>' : '') +
       '</div>', {});
     G.$('#scene').querySelectorAll('.step-btn').forEach(btn => {
       btn.onclick = () => {
         const i = +btn.dataset.i, d = +btn.dataset.d;
+        if (MD.pays[M[i].id]) return;
         if (MD.v[i] + d < 0 || MD.v[i] + d > 14) return;
-        // 赎回保护：已赎回的项不能再被砍
-        if (d < 0 && i === MD.redeemedIdx) { MD.warn = '这项你已经花钱买回来了。'; render(); return; }
         MD.v[i] += d;
         MD.warn = MD.v[i] < M[i].min ? (M[i].voice + '：' + M[i].warn) : '';
         try { G.sfx && G.sfx.click(); } catch (e) {}
-        G.save();
-        render();
+        G.save(); render();
       };
     });
-    const redeem = G.$('#md-redeem');
-    if (redeem) redeem.onclick = () => {
-      // 找被砍最狠的一项买回来
-      let worst = -1, worstCut = 0;
-      M.forEach((r, i) => {
-        const cut = r.min - MD.v[i];
-        if (cut > worstCut) { worstCut = cut; worst = i; }
-      });
-      if (worst >= 0 && worstCut > 0) {
-        MD.v[worst] += worstCut;
-        MD.redeemed = 1;
-        MD.redeemedIdx = worst;
-        MD.warn = '钱到账。' + M[worst].name + ' 买回来了——从别处再砍吧。';
-        G.applyFx({ money: -5 });
+    G.$('#scene').querySelectorAll('.pay-link').forEach(a => {
+      a.onclick = () => {
+        const r = M.find(x => x.id === a.dataset.id);
+        if (!r || !r.pay || G.S.attrs.money < r.pay.cost) { MD.warn = '存款不够这项的压缩。'; render(); return; }
+        G.S.attrs.money -= r.pay.cost;
+        MD.pays[r.id] = 1;
+        MD.v[M.indexOf(r)] = r.pay.to;
+        MD.warn = r.pay.payWarn;
         try { G.sfx && G.sfx.ok(); } catch (e) {}
-        G.save();
-        render();
-      }
-    };
+        G.hud(); G.save(); render();
+      };
+    });
     const sub = G.$('#sc-sub');
     if (sub) sub.onclick = () => finish();
   }
   function finish() {
-    const cuts = M.map((r, i) => ({ r, cut: r.min - MD.v[i] })).filter(x => x.cut > 0);
+    const cuts = M.map((r, i) => ({ r, cut: r.min - MD.v[i], paid: !!MD.pays[r.id] })).filter(x => x.cut > 0 && !x.paid);
+    const comps = M.filter(r => MD.pays[r.id]);
+    const spent = comps.reduce((a, r) => a + r.pay.cost, 0);
     const cutLine = {
       '医生': '医生说睡不够会猝死。那是十年后的事。',
       '妈妈': '妈妈说机构效率高。妈妈自己盯了两年，白头发多了很多。',
@@ -1182,12 +1195,20 @@ G.SCENES.scheduleMid = function (b, done) {
       '房价': '房价说郊区的时间是免费的。免费的最贵。',
       '生存': '生存说人要吃饭。'
     };
-    const lines = cuts.map(x => ({ t: '你砍掉了【' + x.r.name + '】' + x.cut + ' 小时。（' + (cutLine[x.r.voice] || '') + '）' }));
-    if (MD.redeemed > 0) lines.push({ t: '你还花了 5 万赎回过一项。钱花出去的那一刻，你终于懂了：这题的无解，是能标价的。' });
-    lines.push({ t: '这 道 题 无 解', big: 1 });
-    lines.push({ t: '小镇在时间里挣扎，你在钱和时间里挑一样放弃。' });
-    lines.push({ t: '你们砍的都是睡眠——只是你砍之前，先算了一笔账。', small: 1 });
-    G.applyFx({ health: -5, mood: MD.redeemed > 0 ? -10 : -8 });
+    const lines = [];
+    if (comps.length) {
+      comps.forEach(x => lines.push({ t: '你花了 ' + x.pay.cost + ' 万，把【' + x.name + '】从 ' + x.min + ' 小时压到 ' + MD.v[M.indexOf(x)] + ' 小时。（' + x.pay.label + '）' }));
+      cuts.forEach(x => lines.push({ t: '剩余的从【' + x.r.name + '】砍了 ' + x.cut + ' 小时。（' + (cutLine[x.r.voice] || '') + '）' }));
+      lines.push({ t: '这 道 题 解 开 了', big: 1 });
+      lines.push({ t: '小镇解不开，你解得开——这就是阶级，具体到数字（¥' + spent + ' 万）的那种。' });
+      lines.push({ t: '但账单是另一道题：这些钱，要用多少小时的班赚回来？两道题互为利息。' });
+    } else {
+      cuts.forEach(x => lines.push({ t: '你砍掉了【' + x.r.name + '】' + x.cut + ' 小时。（' + (cutLine[x.r.voice] || '') + '）' }));
+      lines.push({ t: '这 道 题 无 解', big: 1 });
+      lines.push({ t: '你和小镇做的是同一道题。你本来可以花钱绕开它——你没花。' });
+      lines.push({ t: '有钱人的无解能标价，你的无解就是无解。', small: 1 });
+    }
+    G.applyFx({ health: -5, mood: -8 });
     G.cine(lines, 'red', done);
   }
   render();

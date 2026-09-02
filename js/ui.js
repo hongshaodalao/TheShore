@@ -98,6 +98,8 @@ document.addEventListener('click', e => {
 
 /* ---------- 事件卡 ---------- */
 G.card = function (beat, onDone) {
+  const v = beat.variants && G.S && G.S.fam && beat.variants[G.S.fam];
+  if (v) { beat = Object.assign({}, beat, { text: v.text, ch: v.ch }); }
   const sc = G.show(
     '<div class="cardbox">' +
     '<span class="app-chip">' + (beat.app || '通知') + '</span>' +
