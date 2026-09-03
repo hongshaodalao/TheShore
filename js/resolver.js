@@ -152,6 +152,7 @@ G.resolveEnding = function () {
   if (f.tianxuan) return 'tianxuan';
   if (f.shixi) return 'shixi';
   if (f.chuzou) return 'chuzou';
+  if (f.dagong) return 'liushui';
   if (f.fakao) return 'fankang';
   if (f.tuisai) return 'tuisai';
   if (f.an) return 'an';
