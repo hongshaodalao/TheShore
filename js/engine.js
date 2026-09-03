@@ -50,12 +50,11 @@ G.buildChapters = function () {
   Q.push({ t: 'fx', fx: { age: 12 } });
   Q.push({ t: 'news', id: 'sanSui' });
   if (S.fam !== 'roma') Q.push({ t: 'news', id: S.fam === 'town' ? 'cunqing' : 'jiaoyu' });
-  const ch1 = clone(C.ch1);
-  const pool = clone(C.ch1Pool);
-  ch1.splice(2, 0, pool.shift());
-  ch1.splice(8, 0, pool.shift());
-  ch1.splice(13, 0, pool.shift());
-  ch1.splice(16, 0, pool.shift());
+  var ch1, pool;
+  if (S.fam === 'town') { ch1 = clone(C.ch1Town); pool = clone(C.ch1PoolTown); }
+  else { ch1 = clone(C.ch1); pool = clone(C.ch1Pool); }
+  if (S.fam === 'town') { ch1.splice(9, 0, pool.shift()); }
+  else { ch1.splice(2, 0, pool.shift()); ch1.splice(8, 0, pool.shift()); ch1.splice(13, 0, pool.shift()); ch1.splice(16, 0, pool.shift()); }
   ch1.filter(byFam).forEach(raw => Q.push(norm(raw)));
   Q.push({ t: 'dm', title: '网络舆论 · 教育版', pools: ['edu', 'general'], n: 12 });
   Q.push({ t: 'fn', id: 'schedule' });
