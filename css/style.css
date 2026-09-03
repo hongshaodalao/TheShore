@@ -526,3 +526,126 @@ input[type="range"] { width: 100%; accent-color: var(--red); margin: 6px 0 18px;
   .chip { font-size: 9px; padding: 2px 5px; }
   #hud { gap: 3px; }
 }
+
+/* ============ v1.18：程序化视觉（零图片） ============ */
+/* 无脸剪影头像 */
+.silhouette {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(180deg, #b9b2a2 0 55%, transparent 55%);
+  position: relative; overflow: hidden; flex: 0 0 auto;
+}
+.silhouette::after {
+  content: ""; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(180deg, #8a8478 0 60%, transparent 60%);
+}
+.silhouette.lg { width: 72px; height: 72px; }
+.silhouette.lg::after { width: 32px; height: 32px; top: 16px; }
+.silhouette.dark { background: linear-gradient(180deg, #4a4640 0 55%, transparent 55%); }
+.silhouette.dark::after { background: linear-gradient(180deg, #2c2a27 0 60%, transparent 60%); }
+
+/* ① 结局证件卡 */
+.idcard {
+  max-width: 320px; margin: 18px auto; border-radius: 12px; padding: 14px;
+  font-size: 13px; line-height: 1.8; position: relative;
+  border: 2px solid var(--ink); background: #fff;
+  display: flex; gap: 12px; align-items: flex-start;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+.idcard .id-photo {
+  width: 64px; height: 80px; border-radius: 4px; flex: 0 0 auto;
+  background: linear-gradient(180deg, #d8d2c4 0 60%, #b9b2a2 60% 78%, transparent 78%);
+  position: relative; overflow: hidden;
+}
+.idcard .id-photo::after {
+  content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 28px; height: 28px; border-radius: 50%; background: #8a8478;
+}
+.idcard .id-body { flex: 1; min-width: 0; }
+.idcard .id-title { font-size: 10px; letter-spacing: 3px; color: var(--ink2); }
+.idcard .id-name { font-size: 17px; font-weight: 800; margin: 3px 0 6px; }
+.idcard .id-field { border-bottom: 1px dashed var(--line); padding: 3px 0; display: flex; justify-content: space-between; }
+.idcard .id-field small { color: var(--ink2); }
+.idcard .id-stamp {
+  position: absolute; right: 10px; bottom: 8px;
+  border: 2px solid var(--red); color: var(--red);
+  border-radius: 50%; width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; text-align: center; line-height: 1.3;
+  transform: rotate(-14deg); opacity: .82; font-family: "Songti SC","SimSun",serif;
+}
+.idcard.rider { background: linear-gradient(135deg, #fffbe6, #fff3cc); border-color: #d4a017; }
+.idcard.rider .id-stamp { border-color: #d4a017; color: #a07000; }
+.idcard.gold { background: linear-gradient(135deg, #fdf6dd, #f3d98a); border-color: var(--gold); }
+.idcard.gold .id-stamp { border-color: var(--gold); color: var(--gold); }
+.idcard.court { background: #f5f0e8; border-color: #8b0000; }
+.idcard.court .id-stamp { border-color: #8b0000; color: #8b0000; }
+.idcard.school { background: linear-gradient(135deg, #e8eef7, #c2d2e8); border-color: #5b7ea6; }
+.idcard.factory { background: #eef2f5; border-color: #5a6b7a; }
+.idcard.factory .shift { display: flex; gap: 6px; margin-top: 4px; font-size: 11px; }
+.idcard.factory .shift span { background: var(--ink); color: var(--paper); border-radius: 3px; padding: 1px 6px; }
+
+/* ② 抽卡稀有度光效 */
+.gacha-card { position: relative; }
+.gacha-card .silhouette { position: absolute; right: 14px; top: 14px; opacity: .5; }
+.gacha-card.ssr-glow { animation: ssrPulse 1.8s ease infinite; }
+@keyframes ssrPulse {
+  0%, 100% { box-shadow: 0 16px 40px rgba(184,134,11,.3), inset 0 0 18px rgba(255,215,0,.15); }
+  50% { box-shadow: 0 16px 55px rgba(184,134,11,.65), inset 0 0 32px rgba(255,215,0,.4); }
+}
+.gacha-card.sr-glow { animation: srPulse 2.4s ease infinite; }
+@keyframes srPulse {
+  0%, 100% { box-shadow: 0 14px 36px rgba(142,91,181,.25); }
+  50% { box-shadow: 0 14px 48px rgba(142,91,181,.5); }
+}
+.gacha-card.n-dim { filter: saturate(.6) brightness(.94); }
+
+/* ③ 世系树族谱连线 */
+.gen { position: relative; }
+.gen::before {
+  content: ""; position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--line); border: 2px solid #fff;
+}
+.gen::after { content: none; }
+.lineage.has-svg { position: relative; padding-left: 40px; }
+.lineage .gen-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.lineage .gen-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff; font-family: "Songti SC","SimSun",serif;
+}
+.lineage .gen-avatar.win { background: var(--gold); }
+.lineage .gen-avatar.fall { background: var(--red); }
+.lineage .gen-avatar.quit { background: #9b948a; }
+.lineage .gen-avatar.mid { background: var(--ink); }
+
+/* ④ 道具化：简历证件照 / 已阅章 / 裁员名单红头 */
+.resume { position: relative; }
+.resume .r-photo {
+  position: absolute; right: 14px; top: 46px;
+  width: 54px; height: 68px; border-radius: 3px;
+  background: linear-gradient(180deg, #d8d2c4 0 60%, #b9b2a2 60% 78%, transparent 78%);
+  overflow: hidden;
+}
+.resume .r-photo::after {
+  content: ""; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  width: 24px; height: 24px; border-radius: 50%; background: #8a8478;
+}
+.resume .r-read {
+  position: absolute; right: 76px; top: 50px;
+  border: 2px solid var(--red); color: var(--red); border-radius: 4px;
+  font-size: 11px; font-weight: 800; padding: 2px 6px;
+  transform: rotate(-12deg); opacity: .7; pointer-events: none;
+  font-family: "Songti SC","SimSun",serif;
+}
+.resume .r-read::after { content: "已阅"; }
+.listhead {
+  max-width: 340px; margin: 0 auto 10px; border: 2px solid var(--red); border-radius: 4px;
+  padding: 8px 12px; text-align: center; background: #fff5f5;
+}
+.listhead b { color: var(--redd); font-size: 15px; letter-spacing: 2px; font-family: "Songti SC","SimSun",serif; }
+.listhead small { display: block; font-size: 10px; color: var(--ink2); margin-top: 2px; }
+.xq-grid { font-size: 12px; border-collapse: collapse; width: 100%; margin: 8px 0; }
+.xq-grid td { border: 1px solid var(--line); padding: 4px 8px; }
+.xq-grid td:first-child { background: var(--paper2); color: var(--ink2); width: 72px; }

@@ -173,18 +173,26 @@ function lineageGallery() {
   if (!G.lineage.length) {
     tree = '<div class="gacha-note" style="text-align:center;padding:20px 0">还没有任何一世走完。<br>先去过一遍人生，再来认领你的血脉。</div>';
   } else {
+    var catOf = function(k) {
+      if (['tianxuan','jixiaoA','mingxing','shixi','anshang','baishoutao'].indexOf(k) >= 0) return 'win';
+      if (['linghuo','an','liushui','dagong'].indexOf(k) >= 0) return 'fall';
+      if (['tuisai','tangping','chuzou','chutan','fankang'].indexOf(k) >= 0) return 'quit';
+      return 'mid';
+    };
+    var glyphOf = function(c) { return c === 'win' ? '冠' : c === 'fall' ? '沉' : c === 'quit' ? '隐' : '渡'; };
     tree = '<div class="lineage">' + G.lineage.map((g, i) => {
       const e = window.ENDINGS[g.ending] || { name: g.ending, quote: '' };
       const next = G.lineage[i + 1];
-      return '<div class="gen">' +
-        '<div class="gen-run">第 ' + g.run + ' 世 · #' + Number(g.seed).toString(16).toUpperCase() + '</div>' +
-        '<div class="gen-fam">' + g.fam + (g.inh ? '（继承自上一世）' : '') + '</div>' +
+      const cat = catOf(g.ending);
+      return '<div class="gen"><div class="gen-head"><div class="gen-avatar ' + cat + '">' + glyphOf(cat) + '</div>' +
+        '<div><div class="gen-run">第 ' + g.run + ' 世 · #' + Number(g.seed).toString(16).toUpperCase() + '</div>' +
+        '<div class="gen-fam">' + g.fam + (g.inh ? '（继承：' + g.inh + '）' : '') + '</div></div></div>' +
         '<div class="gen-end">结局「<b>' + e.name + '</b>」</div>' +
         '<div class="gen-quote">“' + e.quote + '”</div>' +
         '</div>' + (next ? '<div class="gen-arrow">↓ 遗产流向下一代' +
           (next.inh ? '：' + next.inh : '') + '</div>' : '');
     }).join('') + '</div>' +
-      '<div class="gacha-note" style="text-align:center;margin-top:6px">每一世都没有白活。<br>它们变成了下一世的起跑线。</div>';
+      '<div class="gacha-note" style="text-align:center;margin-top:6px">冠=赢家系 · 沉=坠落系 · 隐=退赛系 · 渡=摆渡系<br>每一世都没有白活。</div>';
   }
   const gal = '<div class="report-cap" style="margin-top:20px">结 局 图 鉴</div>' +
     '<div class="achgrid">' + Object.keys(window.ENDINGS).map(k => {

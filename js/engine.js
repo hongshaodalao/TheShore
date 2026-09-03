@@ -193,6 +193,28 @@ G.famNews = function (newsId) {
   if (i >= 0 && extra.length) S.Q.splice(i + 1, 0, ...extra.map(id => ({ t: 'news', id })));
 };
 
+G.idCardHTML = function (endId, S) {
+  var map = {
+    linghuo:  { cls:'rider',  title:'骑手 APP · 个人中心', name:'骑手 #' + (S.seed % 9999), fields:[['今日订单','31'],['超时','2'],['罚款','¥100'],['时薪','低于最低工资']], stamp:'继续' },
+    shixi:    { cls:'gold',   title:'星海家族办公室', name:'首席投资官', fields:[['姓名','（随父姓）'],['年龄','28'],['任期','终身'],['试用期','无']], stamp:'世袭' },
+    an:       { cls:'court',  title:'法院传票', name:'（2026）某民初 8848 号', fields:[['案由','缔约过失责任纠纷'],['开庭','八个月后'],['原告','你'],['被告','极速餐饮集团']], stamp:'已受理' },
+    changshan:{ cls:'school', title:'毕业证书', name:'某同学', fields:[['专业','（不问出路的那种）'],['校训','脱不下的长衫'],['状态','持证待业']], stamp:'毕业快乐' },
+    liushui:  { cls:'factory',title:'工牌 · 两班倒', name:'操作工 #' + (S.seed % 999), fields:[['今日翻面','1174 次'],['班次','白→夜'],['工龄','1 年']], stamp:'计件', shift:true },
+    jixiaoA:  { cls:'gold',   title:'星海集团 · 工牌', name:'绩效 A', fields:[['部门','（核心）'],['绩效','A'],['薪酬','保密']], stamp:'优秀' },
+    mingxing: { cls:'gold',   title:'星海集团 · 工牌', name:'明星员工', fields:[['称号','打过硬仗的人'],['绩效','A'],['保障','缓期']], stamp:'幸存' },
+    baishoutao:{ cls:'',      title:'星海集团 · HR 工牌', name:'招聘专员', fields:[['职责','安全拒绝'],['手感','已养成'],['愧疚','暂时没有']], stamp:'白手套' }
+  };
+  var d = map[endId];
+  if (!d) d = { cls:'', title:'个人档案', name:'档案编号 #' + S.seed.toString(16).toUpperCase().slice(0,6), fields:[['出生',S.fam==='roma'?'罗马':'其他'],['状态','归档']], stamp:'归档' };
+  var html = '<div class="idcard ' + d.cls + '">';
+  html += '<div class="id-photo"></div>';
+  html += '<div class="id-body"><div class="id-title">' + d.title + '</div>';
+  html += '<div class="id-name">' + d.name + '</div>';
+  d.fields.forEach(function(f){ html += '<div class="id-field"><small>' + f[0] + '</small><span>' + f[1] + '</span></div>'; });
+  html += '</div><div class="id-stamp">' + d.stamp + '</div></div>';
+  return html;
+};
+
 G.finishQueue = function () {
   const S = G.S, Q = S.Q;
   Q.push({ t: 'fn', id: 'ending' });
@@ -332,10 +354,11 @@ G.SCENES.gacha = function (b, done) {
       (window.ENDINGS[S.lastEnding] ? ENDINGS[S.lastEnding].name : S.lastEnding) +
       '」→ ' + S.inhName + '</div>' : '';
     G.show(
-      '<div class="gacha-card ' + fam.color + '">' +
+      '<div class="gacha-card ' + fam.color + (fam.rarity === 'SSR' ? ' ssr-glow' : fam.rarity === 'SR' ? ' sr-glow' : ' n-dim') + '">' +
+      '<div class="silhouette"></div>' +
       '<div class="rarity">' + (S.inhName ? '继承' : (fam.rarity || '')) + ' · 第 ' + S.run + ' 世</div>' +
       '<h3>' + fam.name + (S.inhName ? '<span style="font-size:12px;font-weight:400">（继承：' + S.inhName + '）</span>' : '') + '</h3><p>' + fam.text + '</p>' +
-      '<p style="margin-top:8px">户籍：<b>' + S.hid.D.name + '</b>　性别：<b>' + S.hid.gender + '</b>（概率 50%，和现实一样不由你选）</p>' +
+      '<p style="margin-top:8px">户籍：<b>' + (S.hid.D ? S.hid.D.name : '？？') + '</b>　性别：<b>' + S.hid.gender + '</b>（概率 50%，和现实一样不由你选）</p>' +
       '</div>' +
       (S.inhNote ? '<div class="gacha-note">' + S.inhNote + '</div>' : '') +
       '<div class="gacha-note">本卡池概率公示：罗马 2% ／ 中产 18% ／ 小镇 80%。<br>现实没有这行小字。</div>' +
@@ -733,7 +756,9 @@ G.SCENES.hrB = function (b, done) {
       '<span class="kpi">已招 ' + H.hires + ' / 2</span>' +
       '<span class="kpi">给面试 ' + H.fair + '</span>' +
       '<span class="kpi">安全拒绝 ' + H.safe + '</span></div>' +
-      '<div class="resume"><h3>' + r.name + '</h3>' +
+      '<div class="resume">' +
+      (L.length ? '<div class="r-read"></div>' : '') +
+      '<h3>' + r.name + '</h3><div class="r-photo"></div>' +
       '<div class="r-row"><span class="k">年龄</span><span>' + r.age + '</span></div>' +
       '<div class="r-row"><span class="k">第一学历</span><span>' + r.e1 + '</span></div>' +
       (r.e2 ? '<div class="r-row"><span class="k">最高学历</span><span>' + r.e2 + '</span></div>' : '') +
@@ -1907,6 +1932,8 @@ G.SCENES.ending = function (b, done) {
     '<div class="choices" style="max-width:300px;margin:0 auto">' +
     '<button class="btn primary center" id="ed-go">人生复盘 ▸</button></div></div>', { center: true });
   G.$('#ed-go').onclick = done;
+  // v1.18：结局证件卡
+  G.$('#ed-go').closest('.choices').insertAdjacentHTML('beforebegin', G.idCardHTML(S.endId, S));
 };
 
 /* ---------- 复盘报告 ---------- */
